@@ -1,0 +1,9 @@
+# Allowlist: only what the image build needs enters the build context.
+*
+!app
+!requirements.txt
+!requirements-model.txt
+!scripts
+scripts/load_test.py
+**/__pycache__
+**/*.pyc

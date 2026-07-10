@@ -1,0 +1,17 @@
+# Terms that must never be reported as PII, matched case-insensitively against
+# the exact text of a detected entity (from either detector, at any confidence).
+#
+# Intended for brand/product names, internal bot/agent names, and similar terms
+# the NER model tends to tag as person/organization. Edit freely — no code
+# changes required. The file is read once at process startup, so redeploy (or
+# restart the container) after changing it.
+#
+# Path is overridable with the DENYLIST_PATH environment variable.
+terms:
+  - VeChain
+  - VeChainThor
+  - VeBetter
+  - VeBetterDAO
+  - VeWorld
+  - OpenRouter
+  - n8n

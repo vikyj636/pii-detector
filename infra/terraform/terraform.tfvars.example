@@ -1,0 +1,28 @@
+# Copy to terraform.tfvars and adjust. Real terraform.tfvars is gitignored.
+
+aws_region   = "eu-west-1"
+cluster_name = "shared-services" # EXISTING cluster; this stack never creates one
+
+ecr_repository_url = "123456789012.dkr.ecr.eu-west-1.amazonaws.com/pii-detector"
+ecr_repository_arn = "arn:aws:ecr:eu-west-1:123456789012:repository/pii-detector"
+image_tag          = "abc1234" # git SHA pushed by CI (avoid 'latest')
+
+acm_certificate_arn = "arn:aws:acm:eu-west-1:123456789012:certificate/00000000-0000-0000-0000-000000000000"
+
+vpc_id             = "vpc-0123456789abcdef0"
+public_subnet_ids  = ["subnet-0aaaa1111bbbb2222", "subnet-0cccc3333dddd4444"] # ALB
+private_subnet_ids = ["subnet-0eeee5555ffff6666", "subnet-0gggg7777hhhh8888"] # tasks
+
+# Defaults shown; uncomment to override.
+# cpu                               = 1024 # 1 vCPU
+# memory                            = 4096 # MiB — must be a valid Fargate pair with cpu
+# desired_count                     = 2
+# max_capacity                      = 6
+# health_check_grace_period_seconds = 60   # raise if cold start exceeds it (see README)
+# log_retention_days                = 30
+# api_key_secret_name               = "pii-detector/api-key"
+# assign_public_ip                  = false
+# extra_environment = {
+#   INCLUDE_CRYPTO_WALLET_IN_DEFAULT_LABELS = "true"
+#   PHONE_REGIONS                           = "US,IT,DE"
+# }

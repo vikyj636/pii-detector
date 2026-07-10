@@ -1,0 +1,5 @@
+# ML stack — installed in the Docker image only. Tests mock the model and must
+# never need these. NOTE: torch is installed first from the CPU-only wheel
+# index (see Dockerfile) so the CUDA stack never enters the image.
+gliner2>=0.1
+huggingface_hub>=0.24
