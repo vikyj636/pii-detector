@@ -134,7 +134,12 @@ async def health(request: Request):
     return JSONResponse(status_code=503, content=content)
 
 
-@app.post("/detect", response_model=DetectResponse, dependencies=[Depends(require_api_key)])
+@app.post(
+    "/detect",
+    response_model=DetectResponse,
+    response_model_exclude_none=True,
+    dependencies=[Depends(require_api_key)],
+)
 async def detect(request: Request, body: DetectRequest) -> DetectResponse:
     state = request.app.state
     settings: Settings = state.settings
@@ -195,7 +200,7 @@ async def detect(request: Request, body: DetectRequest) -> DetectResponse:
             }
         },
     )
-    return DetectResponse(entities=ordered)
+    return DetectResponse(entities=ordered, correlation_id=body.correlation_id)
 
 
 @app.exception_handler(RequestValidationError)

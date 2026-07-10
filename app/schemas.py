@@ -20,6 +20,11 @@ class DetectRequest(BaseModel):
         default=None,
         description='Per-label confidence threshold overrides, e.g. {"person": 0.7}.',
     )
+    correlation_id: str | None = Field(
+        default=None,
+        max_length=128,
+        description="Opaque client-managed id echoed back verbatim in the response. Not stored, not logged.",
+    )
 
     @field_validator("labels")
     @classmethod
@@ -57,3 +62,5 @@ class Entity(BaseModel):
 
 class DetectResponse(BaseModel):
     entities: list[Entity]
+    # Echo of the request's correlation_id; omitted from the response when absent.
+    correlation_id: str | None = None

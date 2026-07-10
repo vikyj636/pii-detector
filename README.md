@@ -66,21 +66,28 @@ addresses should be treated as PII by default.
 {
   "text": "free text to scan",
   "labels": ["person", "email", "phone_number"],
-  "thresholds": {"person": 0.7}
+  "thresholds": {"person": 0.7},
+  "correlation_id": "n8n-exec-42"
 }
 ```
 
 `labels` and `thresholds` are optional; omitted labels default to
-`DEFAULT_LABELS` (see `app/config.py`). Response:
+`DEFAULT_LABELS` (see `app/config.py`). `correlation_id` (optional, ≤128 chars)
+is an opaque client-managed id echoed back verbatim in the response — the
+service does not store or log it; it exists so the caller can match responses
+to its own runs. Response:
 
 ```json
 {
   "entities": [
     {"text": "Mario Rossi", "type": "person", "start": 15, "end": 26, "confidence": 0.82, "source": "ner"},
     {"text": "mario@test.com", "type": "email", "start": 40, "end": 54, "confidence": 1.0, "source": "regex"}
-  ]
+  ],
+  "correlation_id": "n8n-exec-42"
 }
 ```
+
+(`correlation_id` is omitted from the response when not sent.)
 
 `start`/`end` are character offsets into the request `text` and always satisfy
 `text[start:end] == entity.text` — replace by offsets, not by string search.

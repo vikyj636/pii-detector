@@ -127,6 +127,29 @@ def test_invalid_threshold_value_rejected(client, auth_headers):
     assert response.status_code == 422
 
 
+def test_correlation_id_is_echoed_back(client, auth_headers):
+    response = client.post(
+        "/detect",
+        json={"text": ACCEPTANCE_TEXT, "correlation_id": "n8n-exec-42"},
+        headers=auth_headers,
+    )
+    assert response.status_code == 200
+    assert response.json()["correlation_id"] == "n8n-exec-42"
+
+
+def test_correlation_id_omitted_when_absent(client, auth_headers):
+    response = client.post("/detect", json={"text": "hello"}, headers=auth_headers)
+    assert response.status_code == 200
+    assert "correlation_id" not in response.json()
+
+
+def test_correlation_id_too_long_rejected(client, auth_headers):
+    response = client.post(
+        "/detect", json={"text": "x", "correlation_id": "c" * 129}, headers=auth_headers
+    )
+    assert response.status_code == 422
+
+
 def test_request_id_header_roundtrip(client, auth_headers):
     response = client.post(
         "/detect", json={"text": "x"}, headers={**auth_headers, "X-Request-ID": "req-abc-123"}
