@@ -240,8 +240,10 @@ default), and target-tracking autoscaling on CPU 70% with
 `min = desired_count`, `max = max_capacity`.
 
 **Measure the health-check grace period.** The default
-`health_check_grace_period_seconds = 60` is a starting point. After the first
-deploy, compare the task `startedAt` timestamp with the `NER model ready`
+`health_check_grace_period_seconds = 60` is a starting point. Locally the model
+loads in ~5 s from the baked-in weights (M-series Mac, `--cpus=1`); on Fargate
+add image pull (~2.4 GB) and a slower first load. After the first deploy,
+compare the task `startedAt` timestamp with the `NER model ready`
 (`load_seconds`) log line, add image-pull time and headroom, and set the
 variable accordingly. If tasks get killed as "unhealthy" during startup, this
 is the knob.
@@ -261,17 +263,24 @@ Against the deployed service:
 python scripts/load_test.py --url https://pii.example.com --api-key "$API_KEY" -n 500 -c 20
 ```
 
-Sample output:
+Real output measured against the container under `--memory=4g --cpus=1` on an
+M-series Mac (arm64; expect different absolute numbers on Fargate x86):
 
 ```
-requests: 200  concurrency: 8  wall: 21.0s  throughput: 9.5 req/s
-status counts: {200: 200}  transport errors: 0
+requests: 40  concurrency: 4  wall: 45.9s  throughput: 0.9 req/s
+status counts: {200: 40}  transport errors: 0
 latency (ms), HTTP 200 only:
-  p50:     780.9
-  p95:    1104.2
-  p99:    1287.5
-  max:    1400.1
+  p50:    4608.9
+  p95:    5319.6
+  p99:    5392.8
+  max:    5392.8
+avg entities per 200 response: 10.0
 ```
+
+Read that example correctly before turning knobs: single-request inference on
+this text is ~1.1 s on one vCPU, and the single worker serializes inference, so
+at `-c 4` each request waits behind ~3 others → p50 ≈ 4×1.1 s. That's queueing,
+not slow inference.
 
 How to read it and which knob to turn:
 
