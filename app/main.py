@@ -140,11 +140,12 @@ async def detect(request: Request, body: DetectRequest) -> DetectResponse:
     settings: Settings = state.settings
 
     if not state.ready.is_set():
-        raise HTTPException(
-            status_code=503,
-            detail="Model is still loading; retry shortly",
-            headers={"Retry-After": "5"},
+        detail = (
+            "Model failed to load; check /health"
+            if state.model_load_error
+            else "Model is still loading; retry shortly"
         )
+        raise HTTPException(status_code=503, detail=detail, headers={"Retry-After": "5"})
     if len(body.text) > settings.max_text_length:
         raise HTTPException(
             status_code=413,
