@@ -166,8 +166,9 @@ resource "aws_ecs_task_definition" "this" {
   network_mode             = "awsvpc"
   cpu                      = var.cpu
   memory                   = var.memory
-  execution_role_arn       = aws_iam_role.execution.arn
-  task_role_arn            = aws_iam_role.task.arn
+  # An EXISTING role, not one this stack creates — see iam.tf. No task_role_arn:
+  # Fargate allows omitting it, and the app makes zero AWS API calls by design.
+  execution_role_arn = var.execution_role_arn
 
   runtime_platform {
     operating_system_family = "LINUX"
@@ -253,5 +254,8 @@ resource "aws_ecs_service" "this" {
     ignore_changes = [desired_count]
   }
 
-  depends_on = [aws_lb_listener.https]
+  # The listener dependency avoids a CertificateNotFound race right after ACM
+  # issuance; the policy dependency avoids tasks failing to start because the
+  # execution role can't yet read the secret (both observed in practice).
+  depends_on = [aws_lb_listener.https, aws_iam_role_policy.execution_secrets_access]
 }

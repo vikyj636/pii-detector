@@ -93,8 +93,33 @@ variable "public_subnet_ids" {
 }
 
 variable "private_subnet_ids" {
-  description = "Subnets for the Fargate tasks. Use private subnets with NAT, or VPC endpoints for ECR/CloudWatch Logs/Secrets Manager."
+  description = <<-EOT
+    Subnets for the Fargate tasks. Use private subnets with NAT, or VPC
+    endpoints for ECR/CloudWatch Logs/Secrets Manager, when available.
+
+    If the account only has a default VPC (all-public subnets, no NAT), pass
+    the SAME subnet ids as public_subnet_ids here and set assign_public_ip =
+    true — the task security group (ALB-only ingress) is what actually
+    controls exposure, not whether the subnet has a public route. This is a
+    real, currently-running configuration, not a hypothetical fallback.
+  EOT
   type        = list(string)
+}
+
+variable "execution_role_arn" {
+  description = <<-EOT
+    ARN of an EXISTING ECS task execution role (image pull, log write). This
+    stack does not create one — see iam.tf for why. Most accounts already
+    have a role named ecsTaskExecutionRole, auto-offered by the ECS console's
+    task definition wizard the first time anyone uses it; check for that
+    before creating anything new.
+  EOT
+  type        = string
+}
+
+variable "execution_role_name" {
+  description = "Name (not ARN) of the same role as execution_role_arn — kept as a separate variable rather than parsed out of the ARN, since roles created under a custom /path/ make that parsing unreliable."
+  type        = string
 }
 
 variable "assign_public_ip" {

@@ -13,12 +13,27 @@ vpc_id             = "vpc-0123456789abcdef0"
 public_subnet_ids  = ["subnet-0aaaa1111bbbb2222", "subnet-0cccc3333dddd4444"] # ALB
 private_subnet_ids = ["subnet-0eeee5555ffff6666", "subnet-0gggg7777hhhh8888"] # tasks
 
+# Existing execution role — this stack does not create one (see infra/terraform/iam.tf).
+# Check for an existing "ecsTaskExecutionRole" before creating anything new.
+execution_role_arn  = "arn:aws:iam::123456789012:role/ecsTaskExecutionRole"
+execution_role_name = "ecsTaskExecutionRole"
+
+# Default-VPC variant actually running today: only public subnets exist (no
+# NAT), so private_subnet_ids repeats public_subnet_ids and assign_public_ip
+# is turned on — see the private_subnet_ids description for why that's still
+# locked down. Real example: account 964907375011 (eu-north-1), cluster
+# pii-redaction-test, hostname pii-detector.dev.b3mo.vechain.org.
+# vpc_id             = "vpc-0aeba9330dd1b98b5"
+# public_subnet_ids  = ["subnet-030efa5d11b7ab256", "subnet-057d8052317cb2e4c", "subnet-085e1dc93a488038e"]
+# private_subnet_ids = ["subnet-030efa5d11b7ab256", "subnet-057d8052317cb2e4c", "subnet-085e1dc93a488038e"]
+# assign_public_ip   = true
+
 # Defaults shown; uncomment to override.
 # cpu                               = 1024 # 1 vCPU
 # memory                            = 4096 # MiB — must be a valid Fargate pair with cpu
 # desired_count                     = 2
 # max_capacity                      = 6
-# health_check_grace_period_seconds = 60   # raise if cold start exceeds it (see README)
+# health_check_grace_period_seconds = 60   # raise if cold start exceeds it (see README; 90 used in practice above)
 # log_retention_days                = 30
 # api_key_secret_name               = "pii-detector/api-key"
 # assign_public_ip                  = false

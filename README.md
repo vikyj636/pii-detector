@@ -209,8 +209,24 @@ Dependabot).
 ## 4. Deploy with Terraform
 
 Prereqs: an **existing** ECS cluster (the stack never creates one), an ACM
-certificate in the target region, a VPC with public subnets (ALB) and
-private subnets with NAT or VPC endpoints (tasks), and the image pushed to ECR.
+certificate in the target region, a VPC (public subnets for the ALB; private
+subnets with NAT/VPC endpoints for tasks if available — see below if not),
+an **existing ECS task execution role** (the stack doesn't create one either —
+check for `ecsTaskExecutionRole` before making anything new), and the image
+pushed to ECR.
+
+> A live deployment of this exact stack runs at
+> `pii-detector.dev.b3mo.vechain.org` (account `964907375011`, `eu-north-1`,
+> cluster `pii-redaction-test`) — a concrete example of the "no NAT, reuse the
+> existing execution role" path described below. **It was provisioned by hand
+> via AWS CLI in CloudShell, not `terraform apply`** (permission constraints
+> hit along the way made that the faster path at the time), so no Terraform
+> state tracks it. This code has been updated to match what's actually
+> running there, but applying it against that account today would try to
+> create duplicates of everything — each real resource would need
+> `terraform import`ing first. Treat it as the template for the *next*
+> environment, not as management of that one, unless someone does the import
+> work.
 
 ```bash
 cd infra/terraform
@@ -219,6 +235,20 @@ terraform init
 terraform plan
 terraform apply
 ```
+
+**No NAT gateway / no private subnets?** Pass the same subnet ids for both
+`public_subnet_ids` and `private_subnet_ids`, and set `assign_public_ip =
+true` — tasks get public IPs, but the task security group only accepts
+traffic from the ALB security group regardless, so this doesn't open direct
+public access to the container. See `terraform.tfvars.example` for the exact
+variant running today.
+
+**IAM permissions to run `terraform apply` itself:** this stack needs
+`iam:PassRole` on the execution role (scoped to `ecs-tasks.amazonaws.com`) and
+`iam:PutRolePolicy` on it (to attach the one inline secrets-read policy in
+`iam.tf`). Broad-but-guardrailed roles like `PowerUserAccess` typically deny
+both of these by design — you may need a narrow, temporary grant for just the
+apply step (or full admin, though that's broader than this actually needs).
 
 Then seed the API key **once** (the secret value is deliberately not managed by
 Terraform so it never touches code review or state):
@@ -240,11 +270,19 @@ What the stack creates: task definition (1 vCPU / 4 GB default — validated
 against the fixed Fargate CPU/memory pairs at plan time), service with
 `desired_count = 2` for zero-downtime rolling deploys, public HTTPS-only ALB
 with `/health` target-group checks, security groups (443 from anywhere → ALB;
-task port only from the ALB SG), least-privilege IAM (execution role = pull
-this one image + read this one secret + write this one log group; task role =
-**no permissions**, by design), CloudWatch log group (30-day retention
+task port only from the ALB SG), CloudWatch log group (30-day retention
 default), and target-tracking autoscaling on CPU 70% with
 `min = desired_count`, `max = max_capacity`.
+
+**IAM is deliberately minimal, not absent.** No execution role and no task
+role are created. The execution role is an existing one you pass in
+(`execution_role_arn`/`execution_role_name`) — most accounts already have a
+serviceable one (`ecsTaskExecutionRole`, with the AWS-managed
+`AmazonECSTaskExecutionRolePolicy` covering ECR pull + log write). This stack
+attaches exactly one narrowly-scoped inline policy to that existing role:
+read access to this service's one secret, nothing else. No task role exists
+at all — the app makes zero AWS API calls by design, and `task_role_arn` is
+optional for Fargate, so it's simply omitted.
 
 **Measure the health-check grace period.** The default
 `health_check_grace_period_seconds = 60` is a starting point. Locally the model
@@ -328,6 +366,6 @@ tests/                       # pytest; NER model mocked, no torch needed
 Dockerfile                   # multi-stage, CPU-only torch, weights baked in, non-root
 scripts/download_model.py    # build-time model snapshot
 scripts/load_test.py         # async load test with p50/p95/p99
-infra/terraform/             # ECS service, ALB, IAM, secret, autoscaling (existing cluster)
+infra/terraform/             # ECS service, ALB, secret, autoscaling (existing cluster + execution role)
 .github/workflows/build-push.yml  # build + smoke test + push to ECR (OIDC, SHA-pinned)
 ```
