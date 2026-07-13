@@ -43,6 +43,31 @@ IPV6_CANDIDATE_RE = re.compile(r"(?<![\w:.])(?:[0-9A-Fa-f]{0,4}:){2,7}[0-9A-Fa-f
 # product these are often legitimate payload, so the label is opt-in.
 CRYPTO_WALLET_RE = re.compile(r"(?<![0-9A-Za-z])0x[0-9a-fA-F]{40}(?![0-9A-Za-z])")
 
+# Italian tax code: 6 letters, 2 digits, 1 letter, 2 digits, 1 letter, 3 digits,
+# 1 letter. Structure-checked here; the mod-26 checksum (codice_fiscale_valid)
+# does the real false-positive filtering.
+CODICE_FISCALE_RE = re.compile(
+    r"(?<![A-Za-z0-9])[A-Za-z]{6}\d{2}[A-Za-z]\d{2}[A-Za-z]\d{3}[A-Za-z](?![A-Za-z0-9])"
+)
+
+# Odd/even position conversion tables for the check-character algorithm.
+# Verified against an authoritative source rather than trusted from memory —
+# a commonly-circulated "example" codice fiscale turned out to not actually be
+# checksum-valid, which would have silently broken this if copied blind.
+_CF_ODD_DIGITS = {"0": 1, "1": 0, "2": 5, "3": 7, "4": 9, "5": 13, "6": 15, "7": 17, "8": 19, "9": 21}
+_CF_ODD_LETTERS = {
+    c: v
+    for c, v in zip(
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZ",
+        [1, 0, 5, 7, 9, 13, 15, 17, 19, 21, 2, 4, 18, 20, 11, 3, 6, 8, 12, 14, 16, 10, 22, 25, 24, 23],
+    )
+}
+_CF_ODD_TABLE = {**_CF_ODD_DIGITS, **_CF_ODD_LETTERS}
+_CF_EVEN_TABLE = {str(d): d for d in range(10)} | {
+    c: i for i, c in enumerate("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
+}
+_CF_VALID_MONTH_LETTERS = frozenset("ABCDEHLMPRST")
+
 
 def luhn_valid(digits: str) -> bool:
     if not digits.isdigit():
@@ -56,6 +81,24 @@ def luhn_valid(digits: str) -> bool:
                 digit -= 9
         total += digit
     return total % 10 == 0
+
+
+def codice_fiscale_checksum_valid(candidate: str) -> bool:
+    cf = candidate.upper()
+    if len(cf) != 16:
+        return False
+    body, check = cf[:15], cf[15]
+    if body[8] not in _CF_VALID_MONTH_LETTERS:  # position 9 (1-indexed): month code
+        return False
+    total = 0
+    for index, char in enumerate(body):
+        # Position 1 (index 0) is odd; odd 1-indexed positions are even indices.
+        table = _CF_ODD_TABLE if index % 2 == 0 else _CF_EVEN_TABLE
+        if char not in table:
+            return False
+        total += table[char]
+    expected = chr(ord("A") + total % 26)
+    return check == expected
 
 
 def iban_checksum_valid(candidate: str) -> bool:
@@ -112,6 +155,8 @@ class RegexDetector:
             entities.extend(self._ip_addresses(text))
         if "crypto_wallet_address" in labels:
             entities.extend(self._crypto_wallets(text))
+        if "codice_fiscale" in labels:
+            entities.extend(self._codice_fiscale(text))
         requested_secret_labels = labels & self.secret_labels
         if requested_secret_labels:
             entities.extend(self._secrets(text, requested_secret_labels))
@@ -174,6 +219,13 @@ class RegexDetector:
         return [
             self._entity(text, "crypto_wallet_address", m.start(), m.end())
             for m in CRYPTO_WALLET_RE.finditer(text)
+        ]
+
+    def _codice_fiscale(self, text: str) -> list[Entity]:
+        return [
+            self._entity(text, "codice_fiscale", m.start(), m.end())
+            for m in CODICE_FISCALE_RE.finditer(text)
+            if codice_fiscale_checksum_valid(m.group())
         ]
 
     def _secrets(self, text: str, labels: set[str]) -> list[Entity]:

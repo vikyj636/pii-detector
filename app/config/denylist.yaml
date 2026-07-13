@@ -15,3 +15,46 @@ terms:
   - VeWorld
   - OpenRouter
   - n8n
+
+  # Generic pronouns, roles, and relationship words the NER model tags as
+  # "person"/"full_name" despite identifying no one. Not exhaustive — add more
+  # here as they turn up; this is a denylist, not a threshold fix, because
+  # these get flagged at genuinely high confidence, not borderline scores.
+  - men
+  - man
+  - woman
+  - someone
+  - real person
+  - him
+  - he
+  - she
+  - wife
+  - husband
+  - boss
+  - crush
+  - mate
+  - intern
+  - agent
+  - AI
+  - AI agent
+  - king
+  - queen
+  - night owl
+  - Italian friends
+
+  # Generic nouns/phrases tagged as "organization" — not brand names, just
+  # common words the model over-associates with the label.
+  - bioluminescent
+  - general knowledge
+  - company
+  - gym
+  - rogue penguins
+  - penguins
+  - circuits
+  - synergy
+
+  # Song lyrics / dish names the model tagged as "full_name" — never PII
+  # regardless of confidence, so denylist rather than tune a threshold for.
+  - zigazig-ha
+  - Tortellini in Brodo
+  - mercimek çorbası

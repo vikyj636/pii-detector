@@ -29,6 +29,11 @@ and later reconstruct the real values.
      the list there, never in code
    - `crypto_wallet_address` — `0x` + 40 hex chars. **Deliberately opt-in**, see
      below.
+   - `codice_fiscale` — Italian tax code, with the real mod-26 check-character
+     algorithm (odd/even position tables + valid month-letter check), not
+     just a shape match. Verified against an authoritative source rather than
+     a memorized example — a widely-circulated "sample" codice fiscale turned
+     out to not actually be checksum-valid.
 2. **NER detector** (`"source": "ner"`):
    [`fastino/gliner2-privacy-filter-PII-multi`](https://huggingface.co/fastino/gliner2-privacy-filter-PII-multi)
    (GLiNER2, ~205M params, Apache 2.0) handles free-text labels — `person`,
@@ -42,7 +47,15 @@ Then two filters:
 3. **Denylist** ([app/config/denylist.yaml](app/config/denylist.yaml)): any
    entity whose exact text (case-insensitive) is listed — brand/product names,
    internal agent names — is dropped regardless of confidence. Editable without
-   code changes; read once at startup.
+   code changes; read once at startup. Also the right tool for generic
+   pronouns/roles the NER model tags as `person` at genuinely high confidence
+   ("wife", "boss", "someone", "AI agent", ...) — those are a precision
+   problem no threshold fixes, since the model isn't unsure, it's just wrong.
+   Real named entities (a real city, a real band, a real given name) that
+   happen to show up in a test conversation are usually **not** bugs — the
+   model correctly identified them as what they are; whether that still
+   counts as "PII" in context is a product judgment call, not something to
+   silently suppress here.
 4. **Per-label confidence thresholds**: defaults in
    [app/config.py](app/config.py) — `0.7` for `person`/`full_name` (the model
    over-predicts on proper nouns per its own model card), `0.5` for everything

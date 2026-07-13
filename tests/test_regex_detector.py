@@ -4,7 +4,12 @@ from pathlib import Path
 
 import pytest
 
-from app.detectors.regex_detector import RegexDetector, iban_checksum_valid, luhn_valid
+from app.detectors.regex_detector import (
+    RegexDetector,
+    codice_fiscale_checksum_valid,
+    iban_checksum_valid,
+    luhn_valid,
+)
 
 SECRET_PATTERNS = Path(__file__).resolve().parents[1] / "app" / "config" / "secret_patterns.yaml"
 
@@ -106,6 +111,32 @@ def test_crypto_wallet(detector):
     assert_spans_match(text, entities)
     # 64-hex transaction hashes must not match
     assert detector.detect("tx 0x" + "ab" * 32, {"crypto_wallet_address"}) == []
+
+
+def test_codice_fiscale_checksum():
+    # Derived from the algorithm itself, not copied from a tutorial example —
+    # a widely-circulated "RSSMRA85M01H501Z" sample turned out to not
+    # actually be checksum-valid (real check char is Q, verified by hand and
+    # programmatically before trusting it in this test).
+    assert codice_fiscale_checksum_valid("RSSMRA85M01H501Q")
+    assert not codice_fiscale_checksum_valid("RSSMRA85M01H501Z")  # wrong check char
+    assert not codice_fiscale_checksum_valid("RSSMRA85Z01H501Q")  # invalid month letter
+    assert not codice_fiscale_checksum_valid("RSSMRA85M01H501")  # wrong length
+
+
+def test_codice_fiscale_detection(detector):
+    text = "Please update my records: Codice Fiscale RSSMRA85M01H501Q, grazie"
+    entities = detector.detect(text, {"codice_fiscale"})
+    assert [e.text for e in entities] == ["RSSMRA85M01H501Q"]
+    assert entities[0].type == "codice_fiscale"
+    assert entities[0].confidence == 1.0
+    assert text[entities[0].start : entities[0].end] == "RSSMRA85M01H501Q"
+
+
+def test_codice_fiscale_rejects_invalid_checksum(detector):
+    # Same shape, but a mangled check character — must not fire.
+    text = "Codice Fiscale RSSMRA85M01H501Z on file"
+    assert detector.detect(text, {"codice_fiscale"}) == []
 
 
 def test_only_requested_labels_run(detector):

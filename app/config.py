@@ -36,6 +36,7 @@ REGEX_LABELS = frozenset(
         "secret",
         "access_token",
         "crypto_wallet_address",
+        "codice_fiscale",
     }
 )
 
@@ -61,6 +62,7 @@ DEFAULT_REGEX_LABELS = (
     "api_key",
     "secret",
     "access_token",
+    "codice_fiscale",
 )
 
 # The GLiNER2 privacy model over-predicts on proper nouns (per its model card),
