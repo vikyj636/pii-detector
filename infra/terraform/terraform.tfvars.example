@@ -39,5 +39,5 @@ execution_role_name = "ecsTaskExecutionRole"
 # assign_public_ip                  = false
 # extra_environment = {
 #   INCLUDE_CRYPTO_WALLET_IN_DEFAULT_LABELS = "true"
-#   PHONE_REGIONS                           = "US,IT,DE"
+#   PHONE_REGIONS                           = "WORLDWIDE"  # or "ALL", or an explicit "US,IT,DE" list — see README
 # }

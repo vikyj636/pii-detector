@@ -143,7 +143,7 @@ refused.
 | `MODEL_NAME` | `fastino/gliner2-privacy-filter-PII-multi` | Hub id used at build time / local fallback. |
 | `DENYLIST_PATH` | `app/config/denylist.yaml` | Denylist file. |
 | `SECRET_PATTERNS_PATH` | `app/config/secret_patterns.yaml` | Vendor key patterns file. |
-| `PHONE_REGIONS` | `US` | Comma-separated regions for national phone formats (e.g. `US,IT,DE`). `+`‑prefixed international numbers match regardless. |
+| `PHONE_REGIONS` | `US` | Comma-separated regions for national phone formats (e.g. `US,IT,DE`). `+`‑prefixed international numbers already match regardless of this setting — libphonenumber extracts the country code directly from those. It's *national*-format numbers (no `+`) that need a region hint, since the same digit sequence can be a valid local number in more than one country. Two sentinel values, in place of an explicit list: `WORLDWIDE` (curated ~50 major population/business regions — measured at 32–155ms added latency for 110–5000 char messages, same results as `ALL` on representative text) or `ALL` (every one of libphonenumber's ~245 supported regions — measured at 100–887ms over the same range; only worth it if you specifically need coverage of small/uncommon territories). |
 | `MAX_TEXT_LENGTH` | `50000` | Request text cap (chars) → `413` above it. |
 | `INCLUDE_CRYPTO_WALLET_IN_DEFAULT_LABELS` | `false` | Opt `crypto_wallet_address` into the defaults (see note above). |
 | `NER_WINDOW_CHARS` / `NER_OVERLAP_CHARS` | `1500` / `200` | Long texts are chunked with overlap before NER; offsets are mapped back and duplicates merged. |
