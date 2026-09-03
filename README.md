@@ -382,3 +382,7 @@ scripts/load_test.py         # async load test with p50/p95/p99
 infra/terraform/             # ECS service, ALB, secret, autoscaling (existing cluster + execution role)
 .github/workflows/build-push.yml  # build + smoke test + push to ECR (OIDC, SHA-pinned)
 ```
+
+## License
+
+[PolyForm Noncommercial License 1.0.0](LICENSE) — free for noncommercial use (personal, research, education, nonprofits); commercial use requires a separate license from the copyright holder.
