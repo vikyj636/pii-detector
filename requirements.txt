@@ -4,4 +4,4 @@ fastapi>=0.115,<1
 uvicorn[standard]>=0.30,<1
 pydantic>=2.7,<3
 phonenumbers>=8.13,<10
-PyYAML>=6.0,<7
+PyYAML>=6.0.3,<7
