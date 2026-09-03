@@ -3,7 +3,7 @@
 ############################################################
 # Stage 1: builder — python deps + model weights
 ############################################################
-FROM python:3.12-slim AS builder
+FROM python:3.14-slim AS builder
 
 ENV PIP_NO_CACHE_DIR=1 \
     PYTHONDONTWRITEBYTECODE=1
@@ -28,7 +28,7 @@ RUN python scripts/download_model.py --model "$MODEL_NAME" --dest /opt/model
 ############################################################
 # Stage 2: runtime
 ############################################################
-FROM python:3.12-slim
+FROM python:3.14-slim
 
 RUN groupadd --gid 10001 app \
  && useradd --uid 10001 --gid app --home-dir /home/app --create-home --shell /usr/sbin/nologin app
